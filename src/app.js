@@ -1,5 +1,5 @@
 "use strict;"
-
+/* Mark McGuire */
 /* Classes */
 const Game = require('./game.js');
 const Player = require('./player.js');
