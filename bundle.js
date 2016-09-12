@@ -1,14 +1,16 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict;"
-
+/* Mark McGuire */
 /* Classes */
 const Game = require('./game.js');
 const Player = require('./player.js');
+const Monster = require('./monster.js');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
-var player = new Player({x: 382, y: 460})
+var player = new Player({x: 382, y: 460});
+var monster = new Monster({x: 200, y: 200});
 
 /**
  * @function masterLoop
@@ -31,7 +33,8 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
-
+  player.update(elapsedTime);
+  monster.update(elapsedTime);
   // TODO: Update the game objects
 }
 
@@ -46,9 +49,10 @@ function render(elapsedTime, ctx) {
   ctx.fillStyle = "lightblue";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   player.render(elapsedTime, ctx);
+  monster.render(elapsedTime, ctx);
 }
 
-},{"./game.js":2,"./player.js":3}],2:[function(require,module,exports){
+},{"./game.js":2,"./monster.js":3,"./player.js":4}],2:[function(require,module,exports){
 "use strict";
 
 /**
@@ -110,6 +114,72 @@ Game.prototype.loop = function(newTime) {
 "use strict";
 
 /**
+ * @module exports the Monster class
+ */
+module.exports = exports = Monster;
+
+/**
+ * @constructor Monster
+ * Creates a new Monster object
+ * @param {Postition} position object specifying an x and y
+ */
+function Monster(position) {
+  this.state = "alive"
+  this.frame = 0;
+  this.timer = 0;
+  this.x = position.x;
+  this.y = position.y;
+  this.width  = 16;
+  this.height = 16;
+  this.stepRange = 200;
+  this.spritesheet  = new Image();
+  this.spritesheet.src = encodeURI('assets/bat/bat.png');
+}
+
+/**
+ * @function updates the Monster object
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ */
+Monster.prototype.update = function(elapsedTime) {
+  console.log(this.state, this.spritesheet.width, this.spritesheet.width/this.height, this.spritesheet.width/this.height);
+  switch(this.state) {
+    case "alive":
+      this.timer++;
+      if(this.timer > 1000/120) {
+        this.frame = (this.frame + 1) % (this.spritesheet.width/this.height);
+        this.timer = 0;
+      }
+      if( (this.x/this.stepRange) != Math.floor(this.x/this.stepRange) ){
+        this.x += this.stepRange/Math.abs(this.stepRange);
+      }
+      else {
+        this.stepRange *= -1;
+        this.x += this.stepRange/Math.abs(this.stepRange);
+      }
+    break;
+  }
+}
+
+/**
+ * @function renders the Monster into the provided context
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ * {CanvasRenderingContext2D} ctx the context to render into
+ */
+Monster.prototype.render = function(time, ctx) {
+  ctx.drawImage(
+    // image
+    this.spritesheet,
+    // source rectangle
+    this.frame * this.width, 0, this.width, this.height,
+    // destination rectangle
+    this.x, this.y, 2*this.width, 2*this.height
+  );
+}
+
+},{}],4:[function(require,module,exports){
+"use strict";
+
+/**
  * @module exports the Player class
  */
 module.exports = exports = Player;
@@ -120,19 +190,44 @@ module.exports = exports = Player;
  * @param {Postition} position object specifying an x and y
  */
 function Player(position) {
+  this.state = "waiting";
+  this.frame = 0;
+  this.timer = 0;
   this.x = position.x;
   this.y = position.y;
   this.width  = 16;
   this.height = 16;
   this.spritesheet  = new Image();
   this.spritesheet.src = encodeURI('assets/link/not link/notlink up.png');
+  
+  
+
+  var self = this;
+  window.onmousedown = function(event) {
+    if(self.state == "waiting") {
+      self.x = event.clientX;
+      self.state = "walking";
+    }
+  }
 }
 
 /**
  * @function updates the player object
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
-Player.prototype.update = function(time) {}
+Player.prototype.update = function(elapsedTime) {
+  //console.log(this.state, this.timer);
+  switch(this.state) {
+    case "walking":
+      this.timer++;
+      if(this.timer > 1000/60) {
+        this.frame = (this.frame + 1) % 4;
+        this.timer = 0;
+      }
+      this.y -= 1;
+    break;
+  }
+}
 
 /**
  * @function renders the player into the provided context
@@ -144,9 +239,9 @@ Player.prototype.render = function(time, ctx) {
     // image
     this.spritesheet,
     // source rectangle
-    0, 0, this.width, this.height,
+    this.frame * this.width, 0, this.width, this.height,
     // destination rectangle
-    this.x, this.y, this.width, this.height
+    this.x, this.y, 2*this.width, 2*this.height
   );
 }
 
